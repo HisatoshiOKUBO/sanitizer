@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>踏み込み消毒槽　交換記録</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --green:#1a6b3c;
+  --green-dk:#124a29;
+  --green-bg:#eaf3ec;
+  --red:#c62828;
+  --red-bg:#fdecea;
+  --bg:#f5f6f4;
+  --card:#ffffff;
+  --border:#e2e5e1;
+  --text:#1f2421;
+  --text-sub:#767f78;
+  --header-bg:#f0f2ef;
+  --radius:14px;
+  --max-w:480px;
+}
+*{box-sizing:border-box;}
+html{font-size:16px;-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:76px;
+}
+button{font-family:inherit;}
+
+/* ===== ヘッダー ===== */
+.hd{
+  background:var(--header-bg);
+  padding:14px 16px 12px;
+  position:sticky;
+  top:0;
+  z-index:100;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  text-align:center;
+}
+.hd-title{font-size:16px;font-weight:700;color:var(--green-dk);letter-spacing:.02em;}
+.hd-sub{font-size:11px;color:var(--text-sub);margin-top:2px;}
+
+/* ===== コンテンツ ===== */
+.wrap{max-width:var(--max-w);margin:0 auto;padding:16px 16px 8px;}
+.view{display:none;}
+.view.active{display:block;}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:14px;
+}
+.card-label{font-size:12px;font-weight:700;color:var(--text-sub);margin-bottom:8px;}
+
+/* 実施日入力 */
+input[type=date]{
+  width:100%;
+  font-size:18px;
+  font-weight:700;
+  padding:12px 14px;
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  color:var(--text);
+  background:#fff;
+  font-family:inherit;
+}
+input[type=date]:focus{outline:none;border-color:var(--green);}
+
+/* 場所ボタン（メイン導線） */
+.loc-list{display:flex;flex-direction:column;gap:10px;}
+.loc-btn{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  background:#fff;
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px 18px;
+  font-size:17px;
+  font-weight:700;
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+  transition:background .15s,border-color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.loc-btn:active{background:var(--green-bg);border-color:var(--green);}
+.loc-btn .arrow{color:var(--green);font-size:20px;font-weight:400;}
+.loc-empty{color:var(--text-sub);font-size:14px;text-align:center;padding:24px 0;}
+
+/* ===== 一覧タブ ===== */
+.month-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.month-nav button{
+  width:44px;height:44px;border-radius:10px;border:1.5px solid var(--border);
+  background:#fff;font-size:18px;color:var(--green-dk);cursor:pointer;
+}
+.month-nav .label{font-size:16px;font-weight:700;}
+
+.export-btn{
+  width:100%;padding:14px;border-radius:10px;border:none;
+  background:var(--green);color:#fff;font-size:15px;font-weight:700;
+  margin-bottom:14px;cursor:pointer;
+}
+
+.rec-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;margin-bottom:8px;cursor:pointer;
+}
+.rec-row .rec-date{font-size:13px;color:var(--text-sub);width:88px;flex-shrink:0;}
+.rec-row .rec-loc{font-size:16px;font-weight:700;flex-grow:1;}
+.rec-row .rec-chev{color:var(--text-sub);font-size:16px;}
+.list-empty{color:var(--text-sub);font-size:14px;text-align:center;padding:32px 0;}
+
+/* ===== 設定タブ ===== */
+.set-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;margin-bottom:8px;
+}
+.set-row .set-name{font-size:16px;font-weight:600;}
+.del-icon{
+  width:36px;height:36px;border-radius:8px;border:none;background:var(--red-bg);
+  color:var(--red);font-size:16px;cursor:pointer;
+}
+.add-row{display:flex;gap:8px;margin-top:6px;}
+.add-row input{
+  flex-grow:1;font-size:16px;padding:12px 14px;border:1.5px solid var(--border);
+  border-radius:10px;font-family:inherit;
+}
+.add-row input:focus{outline:none;border-color:var(--green);}
+.add-row button{
+  padding:0 18px;border-radius:10px;border:none;background:var(--green);
+  color:#fff;font-weight:700;font-size:15px;cursor:pointer;
+}
+
+/* ===== ボトムナビ ===== */
+.nav{
+  position:fixed;left:0;right:0;bottom:0;
+  background:#fff;border-top:1px solid var(--border);
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom,0);
+  z-index:100;
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 0 8px;background:none;border:none;color:var(--text-sub);
+  font-size:11px;cursor:pointer;
+}
+.nav-item .icon{font-size:21px;}
+.nav-item.active{color:var(--green-dk);font-weight:700;}
+
+/* ===== モーダル / ボトムシート ===== */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);
+  z-index:200;align-items:flex-end;justify-content:center;
+}
+.overlay.active{display:flex;}
+.sheet{
+  background:#fff;width:100%;max-width:var(--max-w);
+  border-radius:18px 18px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0));
+  animation:sheetUp .18s ease-out;
+}
+@keyframes sheetUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet h3{margin:0 0 14px;font-size:17px;}
+.sheet .warn-box{
+  background:var(--red-bg);color:var(--red);border-radius:10px;
+  padding:12px 14px;font-size:14px;margin-bottom:16px;line-height:1.5;
+}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--text-sub);margin-bottom:6px;}
+.field select,.field input[type=text],.field input[type=date]{
+  width:100%;font-size:16px;padding:11px 12px;border:1.5px solid var(--border);
+  border-radius:10px;font-family:inherit;
+}
+.field select:focus,.field input:focus{outline:none;border-color:var(--green);}
+
+.seg{display:flex;gap:8px;margin-bottom:14px;}
+.seg label{
+  flex:1;text-align:center;padding:11px 0;border:1.5px solid var(--border);
+  border-radius:10px;font-size:14px;font-weight:700;color:var(--text-sub);cursor:pointer;
+}
+.seg input{display:none;}
+.seg label:has(input:checked){background:var(--green);border-color:var(--green);color:#fff;}
+
+.btn-row{display:flex;gap:10px;margin-top:4px;}
+.btn{
+  flex:1;padding:13px 0;border-radius:10px;border:none;font-size:15px;font-weight:700;cursor:pointer;
+}
+.btn-primary{background:var(--green);color:#fff;}
+.btn-danger{background:var(--red-bg);color:var(--red);}
+.btn-plain{background:#f0f1ef;color:var(--text);}
+
+/* ===== トースト ===== */
+.toast{
+  position:fixed;left:50%;bottom:88px;transform:translateX(-50%) translateY(20px);
+  background:var(--green-dk);color:#fff;padding:12px 20px;border-radius:10px;
+  font-size:14px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;
+  z-index:300;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.err{background:var(--red);}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd-title">踏み込み消毒槽　交換記録</div>
+  <div class="hd-sub">SANITIZER TRAY LOG</div>
+</header>
+
+<div class="wrap">
+
+  <!-- ========== 記録タブ ========== -->
+  <section id="view-record" class="view active">
+    <div class="card">
+      <div class="card-label">実施日</div>
+      <input type="date" id="recordDate">
+    </div>
+    <div class="card-label" style="margin:0 2px 8px;">場所をタップして記録</div>
+    <div class="loc-list" id="locList"></div>
+  </section>
+
+  <!-- ========== 一覧タブ ========== -->
+  <section id="view-list" class="view">
+    <div class="month-nav">
+      <button id="prevMonth">‹</button>
+      <div class="label" id="monthLabel"></div>
+      <button id="nextMonth">›</button>
+    </div>
+    <button class="export-btn" id="openExport">出力（PDF / CSV / Excel）</button>
+    <div id="recList"></div>
+  </section>
+
+  <!-- ========== 設定タブ ========== -->
+  <section id="view-settings" class="view">
+    <div class="card-label" style="margin:0 2px 8px;">消毒槽の設置場所</div>
+    <div id="setList"></div>
+    <div class="add-row">
+      <input type="text" id="newLocName" placeholder="新しい場所を入力">
+      <button id="addLocBtn">追加</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- ボトムナビ -->
+<nav class="nav">
+  <button class="nav-item active" data-view="record"><span class="icon">🧴</span>記録</button>
+  <button class="nav-item" data-view="list"><span class="icon">📋</span>一覧</button>
+  <button class="nav-item" data-view="settings"><span class="icon">⚙️</span>設定</button>
+</nav>
+
+<!-- 重複確認モーダル -->
+<div class="overlay" id="conflictOverlay">
+  <div class="sheet">
+    <h3>記録の上書き確認</h3>
+    <div class="warn-box" id="conflictMsg">この日付・場所の記録は既に登録されています。</div>
+    <div class="btn-row">
+      <button class="btn btn-plain" id="conflictCancel">キャンセル</button>
+      <button class="btn btn-danger" id="conflictOverwrite">上書きする</button>
+    </div>
+  </div>
+</div>
+
+<!-- 訂正モーダル -->
+<div class="overlay" id="editOverlay">
+  <div class="sheet">
+    <h3>記録を訂正</h3>
+    <div class="field">
+      <label>実施日</label>
+      <input type="date" id="editDate">
+    </div>
+    <div class="field">
+      <label>場所</label>
+      <select id="editLoc"></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-danger" id="editDelete">削除</button>
+      <button class="btn btn-plain" id="editCancel">キャンセル</button>
+      <button class="btn btn-primary" id="editSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 出力モーダル -->
+<div class="overlay" id="exportOverlay">
+  <div class="sheet">
+    <h3>出力設定</h3>
+    <div class="seg" id="formatSeg">
+      <label><input type="radio" name="fmt" value="pdf" checked><span>PDF</span></label>
+      <label><input type="radio" name="fmt" value="csv"><span>CSV</span></label>
+      <label><input type="radio" name="fmt" value="excel"><span>Excel</span></label>
+    </div>
+    <div class="field">
+      <label>確認日</label>
+      <input type="date" id="confirmDate">
+    </div>
+    <div class="field">
+      <label>確認者</label>
+      <input type="text" id="confirmBy" placeholder="氏名を入力">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-plain" id="exportCancel">キャンセル</button>
+      <button class="btn btn-primary" id="exportGo">出力する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  ★★★ ここを自分のSupabase情報に書き換えてください ★★★
+//  Project Settings → API に表示されている
+//  「Project URL」と「anon public」キーをそのまま貼り付けます。
+// ============================================================
+const SUPABASE_URL = 'https://eqpbaffvslpxawltrbpc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxcGJhZmZ2c2xweGF3bHRyYnBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjgyMDgsImV4cCI6MjA5NTU0NDIwOH0.47kauTC5Ybot15RRvsKc0cBZcNWfYEc5rYxUbUBo8_8';
+// ============================================================
+
+const SB_H = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+async function sbGet(table, params=''){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: SB_H });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPost(table, body){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method:'POST', headers:SB_H, body:JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPatch(table, filter, body){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+    method:'PATCH', headers:SB_H, body:JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbDelete(table, filter){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+    method:'DELETE', headers:{...SB_H, 'Prefer':''}
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+let locations = [];
+let records = [];
+let curYear, curMonth;
+let pendingRecord = null;
+let editingId = null;
+
+function todayStr(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtDate(s){
+  const [y,m,d] = s.split('-');
+  return `${parseInt(m)}/${parseInt(d)}`;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function toast(msg, isErr=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+/* ===== 画面切替 ===== */
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  if (name === 'list') loadRecords();
+  if (name === 'settings') renderSettings();
+}
+document.querySelectorAll('.nav-item').forEach(b=>{
+  b.addEventListener('click', ()=> switchView(b.dataset.view));
+});
+
+/* ===== 記録タブ ===== */
+async function loadLocations(){
+  try{
+    locations = await sbGet('locations', 'select=id,name,sort_order&order=sort_order.asc,id.asc');
+  } catch(e){ toast('場所の取得に失敗しました', true); locations = []; }
+  renderLocList();
+}
+function renderLocList(){
+  const box = document.getElementById('locList');
+  if (locations.length === 0){
+    box.innerHTML = '<div class="loc-empty">設定タブから場所を追加してください</div>';
+    return;
+  }
+  box.innerHTML = locations.map(l => `
+    <button class="loc-btn" data-id="${l.id}" data-name="${escapeHtml(l.name)}">
+      <span>${escapeHtml(l.name)}</span><span class="arrow">記録 ›</span>
+    </button>`).join('');
+  box.querySelectorAll('.loc-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> submitRecord(btn.dataset.id, btn.dataset.name, false));
+  });
+}
+
+async function submitRecord(locId, locName, force){
+  const date = document.getElementById('recordDate').value || todayStr();
+  try{
+    if (!force){
+      const dup = await sbGet('records',
+        `select=id&record_date=eq.${date}&location_name=eq.${encodeURIComponent(locName)}&limit=1`);
+      if (dup.length > 0){
+        pendingRecord = { locId, locName, date, existingId: dup[0].id };
+        document.getElementById('conflictMsg').textContent =
+          `${fmtDate(date)}「${locName}」の記録は既に登録されています。上書きしますか？`;
+        document.getElementById('conflictOverlay').classList.add('active');
+        return;
+      }
+      await sbPost('records', {
+        record_date: date,
+        location_id: locId ? parseInt(locId) : null,
+        location_name: locName
+      });
+    } else {
+      await sbPatch('records', `id=eq.${pendingRecord.existingId}`, {
+        location_id: locId ? parseInt(locId) : null
+      });
+    }
+    document.getElementById('conflictOverlay').classList.remove('active');
+    toast(`記録しました ✓ ${locName}（${fmtDate(date)}）`);
+  } catch(e){
+    toast('記録に失敗しました', true);
+  }
+}
+document.getElementById('conflictCancel').addEventListener('click', ()=>{
+  document.getElementById('conflictOverlay').classList.remove('active');
+  pendingRecord = null;
+});
+document.getElementById('conflictOverwrite').addEventListener('click', ()=>{
+  if (pendingRecord) submitRecord(pendingRecord.locId, pendingRecord.locName, true);
+});
+
+/* ===== 一覧タブ ===== */
+function renderMonthLabel(){
+  document.getElementById('monthLabel').textContent = `${curYear}年${curMonth}月`;
+}
+function monthRange(y, m){
+  const from = `${y}-${String(m).padStart(2,'0')}-01`;
+  const nm = m === 12 ? 1 : m+1;
+  const ny = m === 12 ? y+1 : y;
+  const to = `${ny}-${String(nm).padStart(2,'0')}-01`;
+  return { from, to };
+}
+async function loadRecords(){
+  renderMonthLabel();
+  const { from, to } = monthRange(curYear, curMonth);
+  try{
+    records = await sbGet('records',
+      `select=id,record_date,location_id,location_name&record_date=gte.${from}&record_date=lt.${to}&order=record_date.desc,location_name.asc`);
+  } catch(e){ toast('記録の取得に失敗しました', true); records = []; }
+  renderRecList();
+}
+function renderRecList(){
+  const box = document.getElementById('recList');
+  if (records.length === 0){
+    box.innerHTML = '<div class="list-empty">この月の記録はまだありません</div>';
+    return;
+  }
+  box.innerHTML = records.map(r => `
+    <div class="rec-row" data-id="${r.id}">
+      <span class="rec-date">${r.record_date}</span>
+      <span class="rec-loc">${escapeHtml(r.location_name)}</span>
+      <span class="rec-chev">訂正 ›</span>
+    </div>`).join('');
+  box.querySelectorAll('.rec-row').forEach(row=>{
+    row.addEventListener('click', ()=> openEdit(parseInt(row.dataset.id)));
+  });
+}
+document.getElementById('prevMonth').addEventListener('click', ()=>{
+  curMonth--; if (curMonth<1){curMonth=12;curYear--;}
+  loadRecords();
+});
+document.getElementById('nextMonth').addEventListener('click', ()=>{
+  curMonth++; if (curMonth>12){curMonth=1;curYear++;}
+  loadRecords();
+});
+
+/* ===== 訂正モーダル ===== */
+function openEdit(id){
+  const rec = records.find(r=>r.id===id);
+  if (!rec) return;
+  editingId = id;
+  document.getElementById('editDate').value = rec.record_date;
+  const sel = document.getElementById('editLoc');
+  sel.innerHTML = locations.map(l=>
+    `<option value="${l.id}" data-name="${escapeHtml(l.name)}" ${l.name===rec.location_name?'selected':''}>${escapeHtml(l.name)}</option>`
+  ).join('');
+  document.getElementById('editOverlay').classList.add('active');
+}
+document.getElementById('editCancel').addEventListener('click', ()=>{
+  document.getElementById('editOverlay').classList.remove('active');
+});
+document.getElementById('editSave').addEventListener('click', async ()=>{
+  const date = document.getElementById('editDate').value;
+  const sel = document.getElementById('editLoc');
+  const opt = sel.options[sel.selectedIndex];
+  if (!date || !opt){ toast('入力内容を確認してください', true); return; }
+  try{
+    await sbPatch('records', `id=eq.${editingId}`, {
+      record_date: date,
+      location_id: parseInt(opt.value),
+      location_name: opt.dataset.name
+    });
+    document.getElementById('editOverlay').classList.remove('active');
+    toast('訂正しました ✓');
+    loadRecords();
+  } catch(e){ toast('保存に失敗しました', true); }
+});
+document.getElementById('editDelete').addEventListener('click', async ()=>{
+  if (!confirm('この記録を削除します。よろしいですか？')) return;
+  try{
+    await sbDelete('records', `id=eq.${editingId}`);
+    document.getElementById('editOverlay').classList.remove('active');
+    toast('削除しました');
+    loadRecords();
+  } catch(e){ toast('削除に失敗しました', true); }
+});
+
+/* ===== 出力モーダル ===== */
+document.getElementById('openExport').addEventListener('click', ()=>{
+  document.getElementById('confirmDate').value = todayStr();
+  document.getElementById('exportOverlay').classList.add('active');
+});
+document.getElementById('exportCancel').addEventListener('click', ()=>{
+  document.getElementById('exportOverlay').classList.remove('active');
+});
+document.querySelectorAll('#formatSeg input').forEach(inp=>{
+  inp.addEventListener('change', ()=>{
+    document.querySelectorAll('#formatSeg label').forEach(l=>l.style.cssText='');
+    inp.closest('label').style.cssText = 'background:var(--green);border-color:var(--green);color:#fff;';
+  });
+});
+document.getElementById('exportGo').addEventListener('click', async ()=>{
+  const fmt = document.querySelector('input[name=fmt]:checked').value;
+  const cDate = document.getElementById('confirmDate').value;
+  const cBy = document.getElementById('confirmBy').value;
+  const monthLabel = `${curYear}年${curMonth}月`;
+  document.getElementById('exportOverlay').classList.remove('active');
+
+  if (fmt === 'csv') exportCsv(monthLabel, cDate, cBy);
+  else if (fmt === 'excel') exportExcel(monthLabel, cDate, cBy);
+  else exportPdf(monthLabel, cDate, cBy);
+});
+
+function exportCsv(monthLabel, cDate, cBy){
+  const lines = [];
+  lines.push(`踏み込み消毒槽　交換記録　${monthLabel}`);
+  lines.push(`確認日,${cDate},確認者,${cBy}`);
+  lines.push('');
+  lines.push('実施日,場所');
+  records.slice().reverse().forEach(r => lines.push(`${r.record_date},${r.location_name}`));
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, `踏み込み消毒槽交換記録_${curYear}${curMonth}.csv`);
+}
+
+function exportExcel(monthLabel, cDate, cBy){
+  const rows = [
+    [`踏み込み消毒槽　交換記録　${monthLabel}`],
+    ['確認日', cDate, '確認者', cBy],
+    [],
+    ['実施日', '場所']
+  ];
+  records.slice().reverse().forEach(r => rows.push([r.record_date, r.location_name]));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 14 }, { wch: 16 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '記録');
+  XLSX.writeFile(wb, `踏み込み消毒槽交換記録_${curYear}${curMonth}.xlsx`);
+}
+
+function exportPdf(monthLabel, cDate, cBy){
+  const rowsHtml = records.length === 0
+    ? '<tr><td colspan="2">記録がありません</td></tr>'
+    : records.slice().reverse().map(r => `
+        <tr><td>${escapeHtml(r.record_date)}</td><td>${escapeHtml(r.location_name)}</td></tr>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+  <title>踏み込み消毒槽交換記録 ${monthLabel}</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm; }
+    body { font-family: 'Meiryo','Hiragino Kaku Gothic ProN',sans-serif; font-size: 12px; color:#000; }
+    h1 { text-align:center; font-size:16px; margin-bottom:12px; }
+    .meta { display:flex; justify-content:flex-end; gap:24px; margin-bottom:10px; font-size:12px; }
+    .meta span { border-bottom:1px solid #333; padding:2px 12px; min-width:100px; display:inline-block; text-align:center; }
+    table { width:100%; border-collapse:collapse; margin-top:8px; }
+    th, td { border:1px solid #555; padding:6px 8px; text-align:center; }
+    th { background:#e8ede9; font-weight:bold; }
+    tr:nth-child(even) td { background:#f7f7f7; }
+    .print-btn { margin:12px 0; text-align:center; }
+    .print-btn button { padding:8px 20px; font-size:14px; cursor:pointer; }
+    @media print { .print-btn { display:none; } }
+  </style></head><body>
+  <h1>踏み込み消毒槽　交換記録　${monthLabel}</h1>
+  <div class="meta">
+    <div>確認日：<span>${escapeHtml(cDate || '　')}</span></div>
+    <div>確認者：<span>${escapeHtml(cBy || '　')}</span></div>
+  </div>
+  <div class="print-btn"><button onclick="window.print()">この画面を印刷 / PDFとして保存</button></div>
+  <table><thead><tr><th style="width:30%">実施日</th><th>場所</th></tr></thead>
+  <tbody>${rowsHtml}</tbody></table>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ===== 設定タブ ===== */
+function renderSettings(){
+  const box = document.getElementById('setList');
+  if (locations.length === 0){
+    box.innerHTML = '<div class="loc-empty">場所が登録されていません</div>';
+    return;
+  }
+  box.innerHTML = locations.map(l => `
+    <div class="set-row">
+      <span class="set-name">${escapeHtml(l.name)}</span>
+      <button class="del-icon" data-id="${l.id}">削除</button>
+    </div>`).join('');
+  box.querySelectorAll('.del-icon').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if (!confirm('この場所を削除しますか？（過去の記録は残ります）')) return;
+      try{
+        await sbDelete('locations', `id=eq.${btn.dataset.id}`);
+        await loadLocations();
+        renderSettings();
+        toast('削除しました');
+      } catch(e){ toast('削除に失敗しました', true); }
+    });
+  });
+}
+document.getElementById('addLocBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('newLocName');
+  const name = input.value.trim();
+  if (!name){ toast('場所の名称を入力してください', true); return; }
+  try{
+    const maxOrder = locations.reduce((m,l)=>Math.max(m, l.sort_order||0), 0);
+    await sbPost('locations', { name, sort_order: maxOrder + 1 });
+    input.value = '';
+    await loadLocations();
+    renderSettings();
+    toast('追加しました ✓');
+  } catch(e){ toast('追加に失敗しました', true); }
+});
+
+/* ===== 初期化 ===== */
+(function init(){
+  const now = new Date();
+  curYear = now.getFullYear();
+  curMonth = now.getMonth()+1;
+  document.getElementById('recordDate').value = todayStr();
+  loadLocations();
+})();
+</script>
+</body>
+</html>
