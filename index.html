@@ -573,38 +573,76 @@ document.getElementById('exportGo').addEventListener('click', async ()=>{
   else exportPdf(monthLabel, cDate, cBy);
 });
 
+const DOW_JA = ['日','月','火','水','木','金','土'];
+
+// 実施日を行、場所を列とした一覧データを組み立てる
+// （その月の全日付を1行ずつ並べ、記録がある場所の列に○を立てる）
+function buildPivot(){
+  const daysInMonth = new Date(curYear, curMonth, 0).getDate();
+
+  // 列＝場所名。現在設定されている場所を優先し、
+  // 削除済みなど設定に無い場所名が記録に残っていれば末尾に追加する
+  const colNames = locations.map(l => l.name);
+  records.forEach(r => { if (!colNames.includes(r.location_name)) colNames.push(r.location_name); });
+
+  // 日付＋場所名 → 記録あり、の索引を作る
+  const marked = {};
+  records.forEach(r => {
+    marked[r.record_date] = marked[r.record_date] || new Set();
+    marked[r.record_date].add(r.location_name);
+  });
+
+  const rows = [];
+  for (let d = 1; d <= daysInMonth; d++){
+    const dateStr = `${curYear}-${String(curMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = new Date(curYear, curMonth-1, d).getDay();
+    const marks = colNames.map(name => (marked[dateStr] && marked[dateStr].has(name)) ? '○' : '');
+    rows.push({ date: dateStr, day: d, dow, marks });
+  }
+  return { colNames, rows };
+}
+
 function exportCsv(monthLabel, cDate, cBy){
+  const { colNames, rows } = buildPivot();
   const lines = [];
   lines.push(`踏み込み消毒槽　交換記録　${monthLabel}`);
   lines.push(`確認日,${cDate},確認者,${cBy}`);
   lines.push('');
-  lines.push('実施日,場所');
-  records.slice().reverse().forEach(r => lines.push(`${r.record_date},${r.location_name}`));
+  lines.push(['実施日', ...colNames].join(','));
+  rows.forEach(r => {
+    const dateLabel = `${r.day}(${DOW_JA[r.dow]})`;
+    lines.push([dateLabel, ...r.marks].join(','));
+  });
   const csv = '\uFEFF' + lines.join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `踏み込み消毒槽交換記録_${curYear}${curMonth}.csv`);
 }
 
 function exportExcel(monthLabel, cDate, cBy){
-  const rows = [
+  const { colNames, rows } = buildPivot();
+  const sheetRows = [
     [`踏み込み消毒槽　交換記録　${monthLabel}`],
     ['確認日', cDate, '確認者', cBy],
     [],
-    ['実施日', '場所']
+    ['実施日', ...colNames]
   ];
-  records.slice().reverse().forEach(r => rows.push([r.record_date, r.location_name]));
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 14 }, { wch: 16 }];
+  rows.forEach(r => sheetRows.push([`${r.day}(${DOW_JA[r.dow]})`, ...r.marks]));
+  const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+  ws['!cols'] = [{ wch: 10 }, ...colNames.map(()=>({ wch: 12 }))];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '記録');
   XLSX.writeFile(wb, `踏み込み消毒槽交換記録_${curYear}${curMonth}.xlsx`);
 }
 
 function exportPdf(monthLabel, cDate, cBy){
-  const rowsHtml = records.length === 0
-    ? '<tr><td colspan="2">記録がありません</td></tr>'
-    : records.slice().reverse().map(r => `
-        <tr><td>${escapeHtml(r.record_date)}</td><td>${escapeHtml(r.location_name)}</td></tr>`).join('');
+  const { colNames, rows } = buildPivot();
+
+  const theadCols = colNames.map(name => `<th>${escapeHtml(name)}</th>`).join('');
+  const rowsHtml = rows.map(r => {
+    const cls = r.dow === 0 ? 'sun' : (r.dow === 6 ? 'sat' : '');
+    const cells = r.marks.map(m => `<td>${m}</td>`).join('');
+    return `<tr><td class="day-col ${cls}">${r.day}(${DOW_JA[r.dow]})</td>${cells}</tr>`;
+  }).join('');
 
   const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
   <title>踏み込み消毒槽交換記録 ${monthLabel}</title>
@@ -615,9 +653,12 @@ function exportPdf(monthLabel, cDate, cBy){
     .meta { display:flex; justify-content:flex-end; gap:24px; margin-bottom:10px; font-size:12px; }
     .meta span { border-bottom:1px solid #333; padding:2px 12px; min-width:100px; display:inline-block; text-align:center; }
     table { width:100%; border-collapse:collapse; margin-top:8px; }
-    th, td { border:1px solid #555; padding:6px 8px; text-align:center; }
+    th, td { border:1px solid #555; padding:5px 6px; text-align:center; }
     th { background:#e8ede9; font-weight:bold; }
     tr:nth-child(even) td { background:#f7f7f7; }
+    .day-col { font-weight:bold; }
+    .sat { color:#1a237e; }
+    .sun { color:#b71c1c; }
     .print-btn { margin:12px 0; text-align:center; }
     .print-btn button { padding:8px 20px; font-size:14px; cursor:pointer; }
     @media print { .print-btn { display:none; } }
@@ -628,7 +669,7 @@ function exportPdf(monthLabel, cDate, cBy){
     <div>確認者：<span>${escapeHtml(cBy || '　')}</span></div>
   </div>
   <div class="print-btn"><button onclick="window.print()">この画面を印刷 / PDFとして保存</button></div>
-  <table><thead><tr><th style="width:30%">実施日</th><th>場所</th></tr></thead>
+  <table><thead><tr><th style="width:14%">実施日</th>${theadCols}</tr></thead>
   <tbody>${rowsHtml}</tbody></table>
   </body></html>`;
 
