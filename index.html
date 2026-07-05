@@ -29,22 +29,33 @@ body{
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,Roboto,sans-serif;
   -webkit-font-smoothing:antialiased;
-  padding-bottom:76px;
+  padding-bottom:24px;
 }
 button{font-family:inherit;}
 
-/* ===== ヘッダー ===== */
-.hd{
+.topbar{
   background:var(--header-bg);
-  padding:14px 16px 12px;
   position:sticky;
   top:0;
   z-index:100;
   box-shadow:0 2px 6px rgba(0,0,0,.06);
-  text-align:center;
 }
+.hd{padding:14px 16px 10px;text-align:center;}
 .hd-title{font-size:16px;font-weight:700;color:var(--green-dk);letter-spacing:.02em;}
 .hd-sub{font-size:11px;color:var(--text-sub);margin-top:2px;}
+
+.tabs{display:flex;border-top:1px solid var(--border);}
+.tab-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:10px 0 9px;background:none;border:none;color:var(--text-sub);
+  font-size:12px;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent;
+}
+.tab-item .icon{font-size:19px;}
+.tab-item.active{color:var(--green-dk);font-weight:700;}
+.tab-item.active::after{
+  content:'';position:absolute;left:20%;right:20%;bottom:0;height:3px;
+  background:var(--green);border-radius:3px 3px 0 0;
+}
 
 /* ===== コンテンツ ===== */
 .wrap{max-width:var(--max-w);margin:0 auto;padding:16px 16px 8px;}
@@ -146,22 +157,6 @@ input[type=date]:focus{outline:none;border-color:var(--green);}
   color:#fff;font-weight:700;font-size:15px;cursor:pointer;
 }
 
-/* ===== ボトムナビ ===== */
-.nav{
-  position:fixed;left:0;right:0;bottom:0;
-  background:#fff;border-top:1px solid var(--border);
-  display:flex;
-  padding-bottom:env(safe-area-inset-bottom,0);
-  z-index:100;
-}
-.nav-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
-  padding:9px 0 8px;background:none;border:none;color:var(--text-sub);
-  font-size:11px;cursor:pointer;
-}
-.nav-item .icon{font-size:21px;}
-.nav-item.active{color:var(--green-dk);font-weight:700;}
-
 /* ===== モーダル / ボトムシート ===== */
 .overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.42);
@@ -216,10 +211,17 @@ input[type=date]:focus{outline:none;border-color:var(--green);}
 </head>
 <body>
 
-<header class="hd">
-  <div class="hd-title">踏み込み消毒槽　交換記録</div>
-  <div class="hd-sub">SANITIZER TRAY LOG</div>
-</header>
+<div class="topbar">
+  <header class="hd">
+    <div class="hd-title">踏み込み消毒槽　交換記録</div>
+    <div class="hd-sub">SANITIZER TRAY LOG</div>
+  </header>
+  <nav class="tabs">
+    <button class="tab-item active" data-view="record"><span class="icon">🧴</span>記録</button>
+    <button class="tab-item" data-view="list"><span class="icon">📋</span>一覧</button>
+    <button class="tab-item" data-view="settings"><span class="icon">⚙️</span>設定</button>
+  </nav>
+</div>
 
 <div class="wrap">
 
@@ -255,13 +257,6 @@ input[type=date]:focus{outline:none;border-color:var(--green);}
   </section>
 
 </div>
-
-<!-- ボトムナビ -->
-<nav class="nav">
-  <button class="nav-item active" data-view="record"><span class="icon">🧴</span>記録</button>
-  <button class="nav-item" data-view="list"><span class="icon">📋</span>一覧</button>
-  <button class="nav-item" data-view="settings"><span class="icon">⚙️</span>設定</button>
-</nav>
 
 <!-- 重複確認モーダル -->
 <div class="overlay" id="conflictOverlay">
@@ -328,8 +323,14 @@ input[type=date]:focus{outline:none;border-color:var(--green);}
 //  「Project URL」と「anon public」キーをそのまま貼り付けます。
 // ============================================================
 const SUPABASE_URL = 'https://eqpbaffvslpxawltrbpc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxcGJhZmZ2c2xweGF3bHRyYnBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjgyMDgsImV4cCI6MjA5NTU0NDIwOH0.47kauTC5Ybot15RRvsKc0cBZcNWfYEc5rYxUbUBo8_8';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxcGJhZmZ2c2xweGF3bHRyYnBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjgyMDgsImV4cCI6MjA5NTU0NDIwOH0.47kauTC5Ybot15RRvsKc0cBZcNWfYEc5rYxUbUBo8_8';
 // ============================================================
+// ↑↑↑ 上の2行は「変数名」はそのままに、'　'内の値だけを書き換えてください。
+//     （例: const SUPABASE_ANON_KEY = 'SUPABASE_KEY' のように変数名自体を
+//     変更したり書き換えたりすると、アプリ全体が動作しなくなります）
+// ============================================================
+
+try {
 
 const SB_H = {
   'apikey': SUPABASE_ANON_KEY,
@@ -392,11 +393,11 @@ function toast(msg, isErr=false){
 function switchView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  document.querySelectorAll('.tab-item').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
   if (name === 'list') loadRecords();
   if (name === 'settings') renderSettings();
 }
-document.querySelectorAll('.nav-item').forEach(b=>{
+document.querySelectorAll('.tab-item').forEach(b=>{
   b.addEventListener('click', ()=> switchView(b.dataset.view));
 });
 
@@ -404,7 +405,7 @@ document.querySelectorAll('.nav-item').forEach(b=>{
 async function loadLocations(){
   try{
     locations = await sbGet('locations', 'select=id,name,sort_order&order=sort_order.asc,id.asc');
-  } catch(e){ toast('場所の取得に失敗しました', true); locations = []; }
+  } catch(e){ console.error(e); toast('場所の取得に失敗しました', true); locations = []; }
   renderLocList();
 }
 function renderLocList(){
@@ -448,6 +449,7 @@ async function submitRecord(locId, locName, force){
     document.getElementById('conflictOverlay').classList.remove('active');
     toast(`記録しました ✓ ${locName}（${fmtDate(date)}）`);
   } catch(e){
+    console.error(e);
     toast('記録に失敗しました', true);
   }
 }
@@ -476,7 +478,7 @@ async function loadRecords(){
   try{
     records = await sbGet('records',
       `select=id,record_date,location_id,location_name&record_date=gte.${from}&record_date=lt.${to}&order=record_date.desc,location_name.asc`);
-  } catch(e){ toast('記録の取得に失敗しました', true); records = []; }
+  } catch(e){ console.error(e); toast('記録の取得に失敗しました', true); records = []; }
   renderRecList();
 }
 function renderRecList(){
@@ -533,7 +535,7 @@ document.getElementById('editSave').addEventListener('click', async ()=>{
     document.getElementById('editOverlay').classList.remove('active');
     toast('訂正しました ✓');
     loadRecords();
-  } catch(e){ toast('保存に失敗しました', true); }
+  } catch(e){ console.error(e); toast('保存に失敗しました', true); }
 });
 document.getElementById('editDelete').addEventListener('click', async ()=>{
   if (!confirm('この記録を削除します。よろしいですか？')) return;
@@ -542,7 +544,7 @@ document.getElementById('editDelete').addEventListener('click', async ()=>{
     document.getElementById('editOverlay').classList.remove('active');
     toast('削除しました');
     loadRecords();
-  } catch(e){ toast('削除に失敗しました', true); }
+  } catch(e){ console.error(e); toast('削除に失敗しました', true); }
 });
 
 /* ===== 出力モーダル ===== */
@@ -664,7 +666,7 @@ function renderSettings(){
         await loadLocations();
         renderSettings();
         toast('削除しました');
-      } catch(e){ toast('削除に失敗しました', true); }
+      } catch(e){ console.error(e); toast('削除に失敗しました', true); }
     });
   });
 }
@@ -679,7 +681,7 @@ document.getElementById('addLocBtn').addEventListener('click', async ()=>{
     await loadLocations();
     renderSettings();
     toast('追加しました ✓');
-  } catch(e){ toast('追加に失敗しました', true); }
+  } catch(e){ console.error(e); toast('追加に失敗しました', true); }
 });
 
 /* ===== 初期化 ===== */
@@ -688,8 +690,27 @@ document.getElementById('addLocBtn').addEventListener('click', async ()=>{
   curYear = now.getFullYear();
   curMonth = now.getMonth()+1;
   document.getElementById('recordDate').value = todayStr();
+
+  if (SUPABASE_URL.includes('xxxxxxxxxxxxxxxxxxxx') || SUPABASE_ANON_KEY.includes('ここに')){
+    document.querySelector('.wrap').innerHTML =
+      '<div class="card" style="border-color:var(--red);color:var(--red);">'
+      + '<b>設定が未完了です。</b><br>index.html内の SUPABASE_URL と SUPABASE_ANON_KEY を、'
+      + 'ご自身のSupabaseプロジェクトの値に書き換えてください。</div>';
+    return;
+  }
   loadLocations();
 })();
+
+} catch (err) {
+  console.error(err);
+  document.body.innerHTML =
+    '<div style="padding:24px;font-family:sans-serif;color:#c62828;line-height:1.7;">'
+    + '<b>設定エラーが発生しました。</b><br>'
+    + 'index.html内の <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> の'
+    + '変数名・値を確認してください（変数名自体は変更しないでください）。<br><br>'
+    + 'エラー内容: ' + (err && err.message ? err.message : String(err))
+    + '</div>';
+}
 </script>
 </body>
 </html>
