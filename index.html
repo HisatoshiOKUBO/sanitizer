@@ -466,7 +466,7 @@ document.getElementById('helpClose').addEventListener('click', ()=>{
 /* ===== 記録タブ ===== */
 async function loadLocations(){
   try{
-    locations = await sbGet('locations', 'select=id,name,sort_order&order=sort_order.asc,id.asc');
+    locations = await sbGet('sanitizer_locations', 'select=id,name,sort_order&order=sort_order.asc,id.asc');
   } catch(e){ console.error(e); toast('場所の取得に失敗しました', true); locations = []; }
   renderLocList();
 }
@@ -489,7 +489,7 @@ async function submitRecord(locId, locName, force){
   const date = document.getElementById('recordDate').value || todayStr();
   try{
     if (!force){
-      const dup = await sbGet('records',
+      const dup = await sbGet('sanitizer_records',
         `select=id&record_date=eq.${date}&location_name=eq.${encodeURIComponent(locName)}&limit=1`);
       if (dup.length > 0){
         pendingRecord = { locId, locName, date, existingId: dup[0].id };
@@ -498,13 +498,13 @@ async function submitRecord(locId, locName, force){
         document.getElementById('conflictOverlay').classList.add('active');
         return;
       }
-      await sbPost('records', {
+      await sbPost('sanitizer_records', {
         record_date: date,
         location_id: locId ? parseInt(locId) : null,
         location_name: locName
       });
     } else {
-      await sbPatch('records', `id=eq.${pendingRecord.existingId}`, {
+      await sbPatch('sanitizer_records', `id=eq.${pendingRecord.existingId}`, {
         location_id: locId ? parseInt(locId) : null
       });
     }
@@ -538,7 +538,7 @@ async function loadRecords(){
   renderMonthLabel();
   const { from, to } = monthRange(curYear, curMonth);
   try{
-    records = await sbGet('records',
+    records = await sbGet('sanitizer_records',
       `select=id,record_date,location_id,location_name&record_date=gte.${from}&record_date=lt.${to}&order=record_date.desc,location_name.asc`);
   } catch(e){ console.error(e); toast('記録の取得に失敗しました', true); records = []; }
   renderRecList();
@@ -589,7 +589,7 @@ document.getElementById('editSave').addEventListener('click', async ()=>{
   const opt = sel.options[sel.selectedIndex];
   if (!date || !opt){ toast('入力内容を確認してください', true); return; }
   try{
-    await sbPatch('records', `id=eq.${editingId}`, {
+    await sbPatch('sanitizer_records', `id=eq.${editingId}`, {
       record_date: date,
       location_id: parseInt(opt.value),
       location_name: opt.dataset.name
@@ -602,7 +602,7 @@ document.getElementById('editSave').addEventListener('click', async ()=>{
 document.getElementById('editDelete').addEventListener('click', async ()=>{
   if (!confirm('この記録を削除します。よろしいですか？')) return;
   try{
-    await sbDelete('records', `id=eq.${editingId}`);
+    await sbDelete('sanitizer_records', `id=eq.${editingId}`);
     document.getElementById('editOverlay').classList.remove('active');
     toast('削除しました');
     loadRecords();
@@ -765,7 +765,7 @@ function renderSettings(){
     btn.addEventListener('click', async ()=>{
       if (!confirm('この場所を削除しますか？（過去の記録は残ります）')) return;
       try{
-        await sbDelete('locations', `id=eq.${btn.dataset.id}`);
+        await sbDelete('sanitizer_locations', `id=eq.${btn.dataset.id}`);
         await loadLocations();
         renderSettings();
         toast('削除しました');
@@ -779,7 +779,7 @@ document.getElementById('addLocBtn').addEventListener('click', async ()=>{
   if (!name){ toast('場所の名称を入力してください', true); return; }
   try{
     const maxOrder = locations.reduce((m,l)=>Math.max(m, l.sort_order||0), 0);
-    await sbPost('locations', { name, sort_order: maxOrder + 1 });
+    await sbPost('sanitizer_locations', { name, sort_order: maxOrder + 1 });
     input.value = '';
     await loadLocations();
     renderSettings();
